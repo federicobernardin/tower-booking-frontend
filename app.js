@@ -43,8 +43,6 @@ function apiCall(action, payload) {
     window[callbackName] = function(response) {
       cleanup();
 
-      console.log('RISPOSTA API ' + action + ':', response);
-
       if (!response || response.ok !== true) {
         reject(new Error(response && response.error ? response.error : 'Errore API sconosciuto.'));
         return;
@@ -183,8 +181,6 @@ function submitBookingRequest(event) {
 
   apiCall('createBookingRequest', data)
     .then(function(result) {
-      console.log('RISPOSTA createBookingRequest:', result);
-
       form.reset();
 
       document.getElementById('requestSection').classList.add('hidden');
@@ -197,8 +193,6 @@ function submitBookingRequest(event) {
       loadAvailableSlots();
     })
     .catch(function(error) {
-      console.error('ERRORE createBookingRequest:', error);
-
       message.innerHTML = 'Errore durante l’invio della richiesta: ' + escapeHtml(error.message);
       message.className = 'message error';
     })
@@ -234,7 +228,7 @@ function ensureConfirmationSection() {
   section.innerHTML =
     '<div class="section-title">' +
       '<div>' +
-        '<h2>Richiesta inviata</h2>' +
+        '<h2>Richiesta ricevuta</h2>' +
         '<p>La richiesta è stata registrata correttamente.</p>' +
       '</div>' +
     '</div>' +
@@ -263,9 +257,10 @@ function showConfirmation(slot, data, result) {
   let html = '';
 
   html += '<div class="message success">';
-  html += '<strong>La richiesta è stata inviata correttamente.</strong><br>';
-  html += 'Riceverai una comunicazione dal coordinamento dopo la verifica. ';
-  html += 'La prenotazione non è ancora confermata.';
+  html += '<strong>Richiesta ricevuta correttamente.</strong><br>';
+  html += 'La prenotazione non è ancora confermata. ';
+  html += 'Il coordinamento verificherà la disponibilità della struttura e dei volontari ';
+  html += 'e ti invierà una comunicazione all’indirizzo email indicato.';
   html += '</div>';
 
   html += '<div class="selected-slot">';
@@ -302,12 +297,12 @@ function showConfirmation(slot, data, result) {
   if (result && result.notification) {
     if (result.notification.success === true) {
       html += '<div class="message success">';
-      html += 'Notifica email inviata al coordinamento.';
+      html += 'Il coordinamento è stato avvisato automaticamente.';
       html += '</div>';
     } else {
       html += '<div class="message error">';
-      html += 'La richiesta è stata salvata, ma la notifica email ai coordinatori potrebbe non essere partita: ';
-      html += escapeHtml(result.notification.message || 'errore non specificato');
+      html += 'La richiesta è stata salvata, ma la notifica automatica al coordinamento potrebbe non essere partita. ';
+      html += 'Il coordinatore potrà comunque vedere la richiesta nell’area riservata.';
       html += '</div>';
     }
   }
@@ -368,6 +363,18 @@ function showTestConfirmation() {
   };
 
   showConfirmation(testSlot, testData, testResult);
+}
+
+function goToVolunteerArea() {
+  window.open(WEB_APP_URL + '?view=volunteer', '_blank');
+}
+
+function goToCoordinatorArea() {
+  window.open(WEB_APP_URL + '?view=coordinator', '_blank');
+}
+
+function goToDashboard() {
+  window.open(WEB_APP_URL + '?view=dashboard', '_blank');
 }
 
 function getRequestId(result) {
