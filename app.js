@@ -9,59 +9,24 @@ document.addEventListener('DOMContentLoaded', function () {
   loadAvailableSlots();
 });
 
-function apiCall(action, payload) {
-  return new Promise(function(resolve, reject) {
-    const callbackName = 'jsonpCallback_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+apiCall('createBookingRequest', data)
+  .then(function(result) {
+    console.log('RISPOSTA createBookingRequest:', result);
 
-    const params = new URLSearchParams({
-      api: '1',
-      action: action,
-      payload: JSON.stringify(payload || {}),
-      callback: callbackName
-    });
+    const submittedSlot = selectedSlot ? Object.assign({}, selectedSlot) : null;
+    const submittedData = Object.assign({}, data);
 
-    const script = document.createElement('script');
+    form.reset();
 
-    const timeout = setTimeout(function() {
-      cleanup();
-      reject(new Error('Timeout nella chiamata API.'));
-    }, 30000);
+    document.getElementById('requestSection').classList.add('hidden');
+    document.getElementById('requestMessage').innerHTML = '';
+    document.getElementById('selectedSlotInfo').innerHTML = '';
 
-    function cleanup() {
-      clearTimeout(timeout);
+    selectedSlot = null;
 
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-
-      try {
-        delete window[callbackName];
-      } catch (error) {
-        window[callbackName] = undefined;
-      }
-    }
-
-    window[callbackName] = function(response) {
-      cleanup();
-
-      if (!response || response.ok !== true) {
-        reject(new Error(response && response.error ? response.error : 'Errore API sconosciuto.'));
-        return;
-      }
-
-      resolve(response.data);
-    };
-
-    script.onerror = function() {
-      cleanup();
-      reject(new Error('Errore caricamento script API. Verifica URL Apps Script e deployment.'));
-    };
-
-    script.src = WEB_APP_URL + '?' + params.toString();
-    document.body.appendChild(script);
-  });
-}
-
+    showConfirmation(submittedSlot, submittedData, result);
+    loadAvailableSlots();
+  })
 function loadAvailableSlots() {
   const message = document.getElementById('slotsMessage');
   const list = document.getElementById('slotsList');
