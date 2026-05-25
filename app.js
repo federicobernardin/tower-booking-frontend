@@ -19,6 +19,7 @@ function apiCall(action, payload) {
     });
 
     const script = document.createElement('script');
+
     const timeout = setTimeout(function() {
       cleanup();
       reject(new Error('Timeout nella chiamata API.'));
@@ -101,13 +102,14 @@ function renderSlots(slots) {
 
   slots.forEach(function(slot) {
     html += '<article class="slot-card">';
+    html += '<span class="slot-badge">Disponibile</span>';
     html += '<h3>' + escapeHtml(slot.struttura) + '</h3>';
 
     html += '<div class="slot-meta">';
-    html += '<div><strong>Data:</strong> ' + escapeHtml(slot.data) + '</div>';
-    html += '<div><strong>Fascia:</strong> ' + escapeHtml(slot.fascia) + '</div>';
-    html += '<div><strong>Orario:</strong> ' + escapeHtml(slot.ora_inizio + ' - ' + slot.ora_fine) + '</div>';
-    html += '<div><strong>Capienza massima:</strong> ' + escapeHtml(slot.capienza_max) + '</div>';
+    html += '<div><strong>Data</strong><span>' + escapeHtml(slot.data) + '</span></div>';
+    html += '<div><strong>Fascia</strong><span>' + escapeHtml(slot.fascia) + '</span></div>';
+    html += '<div><strong>Orario</strong><span>' + escapeHtml(slot.ora_inizio + ' - ' + slot.ora_fine) + '</span></div>';
+    html += '<div><strong>Capienza massima</strong><span>' + escapeHtml(slot.capienza_max) + '</span></div>';
     html += '</div>';
 
     html += '<button type="button" onclick="selectSlot(\'' + escapeJs(slot.id_slot) + '\')">Richiedi questo slot</button>';
