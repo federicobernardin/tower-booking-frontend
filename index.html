@@ -13,21 +13,47 @@
   <header class="app-header">
     <div class="container header-content">
       <div>
+        <div class="eyebrow">Centro Studi Materiali e Tecniche</div>
         <h1>Prenotazioni Torre e Laboratorio CAI</h1>
-        <p>Centro Studi Materiali e Tecniche</p>
+        <p>
+          Consulta gli slot disponibili e invia una richiesta di prenotazione.
+          La richiesta sarà valutata dal coordinamento prima della conferma.
+        </p>
       </div>
     </div>
   </header>
 
   <main class="container">
 
-    <section class="card">
-      <h2>Richiedi una prenotazione</h2>
+    <section class="intro-grid">
+      <article class="info-card">
+        <div class="info-icon">1</div>
+        <h3>Scegli uno slot</h3>
+        <p>Filtra per struttura e fascia oraria, poi seleziona una data disponibile.</p>
+      </article>
 
-      <p>
-        Seleziona una data disponibile e compila il modulo.
-        La richiesta non costituisce conferma automatica: riceverai una comunicazione dal coordinamento.
-      </p>
+      <article class="info-card">
+        <div class="info-icon">2</div>
+        <h3>Compila la richiesta</h3>
+        <p>Inserisci i dati del referente, del gruppo e la finalità della visita/formazione.</p>
+      </article>
+
+      <article class="info-card">
+        <div class="info-icon">3</div>
+        <h3>Attendi conferma</h3>
+        <p>La prenotazione diventa effettiva solo dopo la conferma del coordinamento.</p>
+      </article>
+    </section>
+
+    <section class="card">
+      <div class="section-title">
+        <div>
+          <h2>Slot disponibili</h2>
+          <p>
+            Seleziona una data disponibile per Torre o Laboratorio.
+          </p>
+        </div>
+      </div>
 
       <div class="filters">
         <label>
@@ -57,7 +83,14 @@
     </section>
 
     <section id="requestSection" class="card hidden">
-      <h2>Modulo richiesta</h2>
+      <div class="section-title">
+        <div>
+          <h2>Modulo richiesta</h2>
+          <p>
+            Compila tutti i campi obbligatori. Riceverai una comunicazione dopo la verifica della richiesta.
+          </p>
+        </div>
+      </div>
 
       <div id="selectedSlotInfo" class="selected-slot"></div>
 
@@ -125,7 +158,7 @@
 
         <label class="checkbox">
           <input type="checkbox" name="consenso_privacy" required>
-          Dichiaro di autorizzare l'utilizzo dei dati inseriti per la gestione della richiesta.
+          <span>Dichiaro di autorizzare l'utilizzo dei dati inseriti per la gestione della richiesta.</span>
         </label>
 
         <div class="actions">
