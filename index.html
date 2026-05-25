@@ -1,11 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Test prenotazioni</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Prenotazioni Torre e Laboratorio CAI</title>
+
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <h1>Test GitHub Pages</h1>
-  <p>Se vedi questa pagina, GitHub Pages funziona.</p>
+  <header class="app-header">
+    <div class="container header-content">
+      <div>
+        <h1>Prenotazioni Torre e Laboratorio CAI</h1>
+        <p>Centro Studi Materiali e Tecniche</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section class="card">
+      <h2>Richiedi una prenotazione</h2>
+
+      <p>
+        Seleziona una data disponibile e compila il modulo.
+        La richiesta non costituisce conferma automatica: riceverai una comunicazione dal coordinamento.
+      </p>
+
+      <div class="filters">
+        <label>
+          Struttura
+          <select id="filterStructure">
+            <option value="">Tutte</option>
+            <option value="Torre">Torre</option>
+            <option value="Laboratorio">Laboratorio</option>
+          </select>
+        </label>
+
+        <label>
+          Fascia
+          <select id="filterFascia">
+            <option value="">Tutte</option>
+            <option value="Mattina">Mattina</option>
+            <option value="Pomeriggio">Pomeriggio</option>
+            <option value="Giornata intera">Giornata intera</option>
+          </select>
+        </label>
+
+        <button type="button" onclick="loadAvailableSlots()">Aggiorna disponibilità</button>
+      </div>
+
+      <div id="slotsMessage" class="message"></div>
+      <div id="slotsList" class="slots-grid"></div>
+    </section>
+
+    <section id="requestSection" class="card hidden">
+      <h2>Modulo richiesta</h2>
+
+      <div id="selectedSlotInfo" class="selected-slot"></div>
+
+      <form id="bookingRequestForm" onsubmit="submitBookingRequest(event)">
+        <input type="hidden" id="id_slot" name="id_slot">
+
+        <div class="grid">
+          <label>
+            Nome referente *
+            <input type="text" name="nome_referente" required>
+          </label>
+
+          <label>
+            Cognome referente *
+            <input type="text" name="cognome_referente" required>
+          </label>
+
+          <label>
+            Email *
+            <input type="email" name="email" required>
+          </label>
+
+          <label>
+            Telefono *
+            <input type="text" name="telefono" required>
+          </label>
+
+          <label>
+            Sezione / scuola / gruppo *
+            <input type="text" name="sezione_gruppo" required>
+          </label>
+
+          <label>
+            Tipologia gruppo *
+            <select name="tipologia_gruppo" required>
+              <option value="">Seleziona</option>
+              <option value="Scuola CAI">Scuola CAI</option>
+              <option value="Sezione CAI">Sezione CAI</option>
+              <option value="Gruppo CAI">Gruppo CAI</option>
+              <option value="Commissione CAI">Commissione CAI</option>
+              <option value="Altro">Altro</option>
+            </select>
+          </label>
+
+          <label>
+            Numero partecipanti *
+            <input type="number" min="1" name="numero_partecipanti" required>
+          </label>
+
+          <label>
+            Numero accompagnatori
+            <input type="number" min="0" name="numero_accompagnatori" value="0">
+          </label>
+        </div>
+
+        <label>
+          Finalità della visita/formazione *
+          <textarea name="finalita" required></textarea>
+        </label>
+
+        <label>
+          Note aggiuntive
+          <textarea name="note_richiedente"></textarea>
+        </label>
+
+        <label class="checkbox">
+          <input type="checkbox" name="consenso_privacy" required>
+          Dichiaro di autorizzare l'utilizzo dei dati inseriti per la gestione della richiesta.
+        </label>
+
+        <div class="actions">
+          <button type="submit">Invia richiesta</button>
+          <button type="button" class="secondary" onclick="cancelRequestForm()">Annulla</button>
+        </div>
+      </form>
+
+      <div id="requestMessage" class="message"></div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <div class="container">
+      <p>Centro Studi Materiali e Tecniche CAI</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>
