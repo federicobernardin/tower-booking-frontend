@@ -263,6 +263,18 @@ function showConfirmation(slot, data, result) {
   html += 'e ti invierà una comunicazione all’indirizzo email indicato.';
   html += '</div>';
 
+  if (result && result.requesterNotification) {
+    if (result.requesterNotification.success === true) {
+      html += '<div class="message success">';
+      html += 'Ti abbiamo inviato una copia della richiesta all’indirizzo email indicato.';
+      html += '</div>';
+    } else {
+      html += '<div class="message">';
+      html += 'La richiesta è stata salvata correttamente, ma non è stato possibile inviare la copia automatica all’indirizzo email indicato.';
+      html += '</div>';
+    }
+  }
+
   html += '<div class="selected-slot">';
   html += '<strong>Riepilogo richiesta</strong><br>';
 
@@ -356,8 +368,13 @@ function showTestConfirmation() {
     },
     notification: {
       success: true,
-      sent: 2,
-      message: 'Notifica email di test simulata.'
+      sent: 0,
+      message: 'Notifica al coordinamento gestita dalla funzione createBookingRequest.'
+    },
+    requesterNotification: {
+      success: true,
+      sent: 1,
+      message: 'Email di presa in carico inviata al richiedente.'
     },
     message: 'Richiesta di test inviata correttamente.'
   };
