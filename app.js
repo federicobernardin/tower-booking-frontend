@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/INSERISCI_QUI_ID_DEPLOYMENT/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzRm6qkOfhgEO3-HVmnjMzVbTjr05tjuM3NcRZKCI7Ldt2Gn7RAYo3Dz1Y1WjJKmaDh5g/exec';
 
 let currentSlots = [];
 let selectedSlot = null;
