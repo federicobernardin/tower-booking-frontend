@@ -4,6 +4,7 @@ let currentSlots = [];
 let selectedSlot = null;
 
 document.addEventListener('DOMContentLoaded', function () {
+  ensureConfirmationSection();
   loadAvailableSlots();
 });
 
@@ -129,6 +130,8 @@ function selectSlot(slotId) {
     return;
   }
 
+  hideConfirmation();
+
   document.getElementById('id_slot').value = selectedSlot.id_slot;
 
   document.getElementById('selectedSlotInfo').innerHTML =
@@ -162,6 +165,7 @@ function submitBookingRequest(event) {
   event.preventDefault();
 
   const form = document.getElementById('bookingRequestForm');
+  const submitButton = form.querySelector('button[type="submit"]');
   const message = document.getElementById('requestMessage');
   const data = formToObject(form);
 
@@ -170,20 +174,147 @@ function submitBookingRequest(event) {
   message.innerHTML = 'Invio richiesta in corso...';
   message.className = 'message';
 
+  setSubmitState(submitButton, true);
+
   apiCall('createBookingRequest', data)
     .then(function(result) {
-      message.innerHTML = escapeHtml(result.message || 'Richiesta inviata correttamente.');
-      message.className = 'message success';
+      const submittedSlot = selectedSlot ? Object.assign({}, selectedSlot) : null;
+      const submittedData = Object.assign({}, data);
 
       form.reset();
       document.getElementById('requestSection').classList.add('hidden');
+      document.getElementById('requestMessage').innerHTML = '';
+      selectedSlot = null;
+
+      showConfirmation(submittedSlot, submittedData, result);
 
       loadAvailableSlots();
     })
     .catch(function(error) {
       message.innerHTML = 'Errore durante l’invio della richiesta: ' + escapeHtml(error.message);
       message.className = 'message error';
+    })
+    .finally(function() {
+      setSubmitState(submitButton, false);
     });
+}
+
+function setSubmitState(button, isSubmitting) {
+  if (!button) {
+    return;
+  }
+
+  if (isSubmitting) {
+    button.disabled = true;
+    button.dataset.originalText = button.innerHTML;
+    button.innerHTML = 'Invio in corso...';
+  } else {
+    button.disabled = false;
+    button.innerHTML = button.dataset.originalText || 'Invia richiesta';
+  }
+}
+
+function ensureConfirmationSection() {
+  if (document.getElementById('confirmationSection')) {
+    return;
+  }
+
+  const section = document.createElement('section');
+  section.id = 'confirmationSection';
+  section.className = 'card hidden';
+  section.innerHTML =
+    '<div class="section-title">' +
+      '<div>' +
+        '<h2>Richiesta inviata</h2>' +
+        '<p>La richiesta è stata registrata correttamente.</p>' +
+      '</div>' +
+    '</div>' +
+    '<div id="confirmationContent"></div>' +
+    '<div class="actions">' +
+      '<button type="button" onclick="hideConfirmation()">Chiudi riepilogo</button>' +
+    '</div>';
+
+  const requestSection = document.getElementById('requestSection');
+  requestSection.parentNode.insertBefore(section, requestSection.nextSibling);
+}
+
+function showConfirmation(slot, data, result) {
+  ensureConfirmationSection();
+
+  const section = document.getElementById('confirmationSection');
+  const content = document.getElementById('confirmationContent');
+
+  const requestId = getRequestId(result);
+
+  let html = '';
+
+  html += '<div class="message success">';
+  html += '<strong>La richiesta è stata inviata correttamente.</strong><br>';
+  html += 'Riceverai una comunicazione dal coordinamento dopo la verifica. La prenotazione non è ancora confermata.';
+  html += '</div>';
+
+  html += '<div class="selected-slot">';
+  html += '<strong>Riepilogo richiesta</strong><br>';
+
+  if (requestId) {
+    html += 'ID richiesta: ' + escapeHtml(requestId) + '<br>';
+  }
+
+  if (slot) {
+    html += 'Struttura: ' + escapeHtml(slot.struttura) + '<br>';
+    html += 'Data: ' + escapeHtml(slot.data) + '<br>';
+    html += 'Fascia: ' + escapeHtml(slot.fascia) + '<br>';
+    html += 'Orario: ' + escapeHtml(slot.ora_inizio + ' - ' + slot.ora_fine) + '<br>';
+  }
+
+  html += '<br>';
+  html += 'Referente: ' + escapeHtml(data.nome_referente + ' ' + data.cognome_referente) + '<br>';
+  html += 'Email: ' + escapeHtml(data.email) + '<br>';
+  html += 'Telefono: ' + escapeHtml(data.telefono) + '<br>';
+  html += 'Gruppo: ' + escapeHtml(data.sezione_gruppo) + '<br>';
+  html += 'Partecipanti: ' + escapeHtml(data.numero_partecipanti) + '<br>';
+  html += 'Accompagnatori: ' + escapeHtml(data.numero_accompagnatori || 0);
+  html += '</div>';
+
+  if (result && result.notification && result.notification.success === false) {
+    html += '<div class="message error">';
+    html += 'La richiesta è stata salvata, ma la notifica email ai coordinatori potrebbe non essere partita: ';
+    html += escapeHtml(result.notification.message || 'errore non specificato');
+    html += '</div>';
+  }
+
+  content.innerHTML = html;
+  section.classList.remove('hidden');
+
+  section.scrollIntoView({
+    behavior: 'smooth'
+  });
+}
+
+function hideConfirmation() {
+  const section = document.getElementById('confirmationSection');
+
+  if (section) {
+    section.classList.add('hidden');
+  }
+}
+
+function getRequestId(result) {
+  if (!result) {
+    return '';
+  }
+
+  if (result.request) {
+    return result.request.id_richiesta ||
+      result.request.requestId ||
+      result.request.id ||
+      '';
+  }
+
+  return result.id_richiesta ||
+    result.requestId ||
+    result.id ||
+    '';
 }
 
 function formToObject(form) {
