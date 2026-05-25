@@ -1,6 +1,5 @@
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzRm6qkOfhgEO3-HVmnjMzVbTjr05tjuM3NcRZKCI7Ldt2Gn7RAYo3Dz1Y1WjJKmaDh5g/exec';
 
-
 let currentSlots = [];
 let selectedSlot = null;
 
@@ -9,24 +8,61 @@ document.addEventListener('DOMContentLoaded', function () {
   loadAvailableSlots();
 });
 
-apiCall('createBookingRequest', data)
-  .then(function(result) {
-    console.log('RISPOSTA createBookingRequest:', result);
+function apiCall(action, payload) {
+  return new Promise(function(resolve, reject) {
+    const callbackName = 'jsonpCallback_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
 
-    const submittedSlot = selectedSlot ? Object.assign({}, selectedSlot) : null;
-    const submittedData = Object.assign({}, data);
+    const params = new URLSearchParams({
+      api: '1',
+      action: action,
+      payload: JSON.stringify(payload || {}),
+      callback: callbackName
+    });
 
-    form.reset();
+    const script = document.createElement('script');
 
-    document.getElementById('requestSection').classList.add('hidden');
-    document.getElementById('requestMessage').innerHTML = '';
-    document.getElementById('selectedSlotInfo').innerHTML = '';
+    const timeout = setTimeout(function() {
+      cleanup();
+      reject(new Error('Timeout nella chiamata API.'));
+    }, 30000);
 
-    selectedSlot = null;
+    function cleanup() {
+      clearTimeout(timeout);
 
-    showConfirmation(submittedSlot, submittedData, result);
-    loadAvailableSlots();
-  })
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+
+      try {
+        delete window[callbackName];
+      } catch (error) {
+        window[callbackName] = undefined;
+      }
+    }
+
+    window[callbackName] = function(response) {
+      cleanup();
+
+      console.log('RISPOSTA API ' + action + ':', response);
+
+      if (!response || response.ok !== true) {
+        reject(new Error(response && response.error ? response.error : 'Errore API sconosciuto.'));
+        return;
+      }
+
+      resolve(response.data);
+    };
+
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('Errore caricamento script API. Verifica URL Apps Script e deployment.'));
+    };
+
+    script.src = WEB_APP_URL + '?' + params.toString();
+    document.body.appendChild(script);
+  });
+}
+
 function loadAvailableSlots() {
   const message = document.getElementById('slotsMessage');
   const list = document.getElementById('slotsList');
@@ -147,6 +183,8 @@ function submitBookingRequest(event) {
 
   apiCall('createBookingRequest', data)
     .then(function(result) {
+      console.log('RISPOSTA createBookingRequest:', result);
+
       form.reset();
 
       document.getElementById('requestSection').classList.add('hidden');
@@ -159,6 +197,8 @@ function submitBookingRequest(event) {
       loadAvailableSlots();
     })
     .catch(function(error) {
+      console.error('ERRORE createBookingRequest:', error);
+
       message.innerHTML = 'Errore durante l’invio della richiesta: ' + escapeHtml(error.message);
       message.className = 'message error';
     })
