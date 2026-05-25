@@ -1,5 +1,6 @@
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzRm6qkOfhgEO3-HVmnjMzVbTjr05tjuM3NcRZKCI7Ldt2Gn7RAYo3Dz1Y1WjJKmaDh5g/exec';
 
+
 let currentSlots = [];
 let selectedSlot = null;
 
@@ -171,6 +172,9 @@ function submitBookingRequest(event) {
 
   data.consenso_privacy = form.querySelector('[name="consenso_privacy"]').checked ? 'SI' : 'NO';
 
+  const submittedSlot = selectedSlot ? Object.assign({}, selectedSlot) : null;
+  const submittedData = Object.assign({}, data);
+
   message.innerHTML = 'Invio richiesta in corso...';
   message.className = 'message';
 
@@ -178,16 +182,15 @@ function submitBookingRequest(event) {
 
   apiCall('createBookingRequest', data)
     .then(function(result) {
-      const submittedSlot = selectedSlot ? Object.assign({}, selectedSlot) : null;
-      const submittedData = Object.assign({}, data);
-
       form.reset();
+
       document.getElementById('requestSection').classList.add('hidden');
       document.getElementById('requestMessage').innerHTML = '';
+      document.getElementById('selectedSlotInfo').innerHTML = '';
+
       selectedSlot = null;
 
       showConfirmation(submittedSlot, submittedData, result);
-
       loadAvailableSlots();
     })
     .catch(function(error) {
@@ -222,6 +225,7 @@ function ensureConfirmationSection() {
   const section = document.createElement('section');
   section.id = 'confirmationSection';
   section.className = 'card hidden';
+
   section.innerHTML =
     '<div class="section-title">' +
       '<div>' +
@@ -235,7 +239,12 @@ function ensureConfirmationSection() {
     '</div>';
 
   const requestSection = document.getElementById('requestSection');
-  requestSection.parentNode.insertBefore(section, requestSection.nextSibling);
+
+  if (requestSection && requestSection.parentNode) {
+    requestSection.parentNode.insertBefore(section, requestSection.nextSibling);
+  } else {
+    document.querySelector('main').appendChild(section);
+  }
 }
 
 function showConfirmation(slot, data, result) {
@@ -250,7 +259,8 @@ function showConfirmation(slot, data, result) {
 
   html += '<div class="message success">';
   html += '<strong>La richiesta è stata inviata correttamente.</strong><br>';
-  html += 'Riceverai una comunicazione dal coordinamento dopo la verifica. La prenotazione non è ancora confermata.';
+  html += 'Riceverai una comunicazione dal coordinamento dopo la verifica. ';
+  html += 'La prenotazione non è ancora confermata.';
   html += '</div>';
 
   html += '<div class="selected-slot">';
@@ -268,19 +278,33 @@ function showConfirmation(slot, data, result) {
   }
 
   html += '<br>';
-  html += 'Referente: ' + escapeHtml(data.nome_referente + ' ' + data.cognome_referente) + '<br>';
-  html += 'Email: ' + escapeHtml(data.email) + '<br>';
-  html += 'Telefono: ' + escapeHtml(data.telefono) + '<br>';
-  html += 'Gruppo: ' + escapeHtml(data.sezione_gruppo) + '<br>';
-  html += 'Partecipanti: ' + escapeHtml(data.numero_partecipanti) + '<br>';
-  html += 'Accompagnatori: ' + escapeHtml(data.numero_accompagnatori || 0);
+  html += 'Referente: ' + escapeHtml((data.nome_referente || '') + ' ' + (data.cognome_referente || '')) + '<br>';
+  html += 'Email: ' + escapeHtml(data.email || '') + '<br>';
+  html += 'Telefono: ' + escapeHtml(data.telefono || '') + '<br>';
+  html += 'Gruppo: ' + escapeHtml(data.sezione_gruppo || '') + '<br>';
+  html += 'Tipologia gruppo: ' + escapeHtml(data.tipologia_gruppo || '') + '<br>';
+  html += 'Partecipanti: ' + escapeHtml(data.numero_partecipanti || '') + '<br>';
+  html += 'Accompagnatori: ' + escapeHtml(data.numero_accompagnatori || 0) + '<br>';
+
+  if (data.finalita) {
+    html += '<br>';
+    html += '<strong>Finalità</strong><br>';
+    html += escapeHtml(data.finalita);
+  }
+
   html += '</div>';
 
-  if (result && result.notification && result.notification.success === false) {
-    html += '<div class="message error">';
-    html += 'La richiesta è stata salvata, ma la notifica email ai coordinatori potrebbe non essere partita: ';
-    html += escapeHtml(result.notification.message || 'errore non specificato');
-    html += '</div>';
+  if (result && result.notification) {
+    if (result.notification.success === true) {
+      html += '<div class="message success">';
+      html += 'Notifica email inviata al coordinamento.';
+      html += '</div>';
+    } else {
+      html += '<div class="message error">';
+      html += 'La richiesta è stata salvata, ma la notifica email ai coordinatori potrebbe non essere partita: ';
+      html += escapeHtml(result.notification.message || 'errore non specificato');
+      html += '</div>';
+    }
   }
 
   content.innerHTML = html;
@@ -297,6 +321,48 @@ function hideConfirmation() {
   if (section) {
     section.classList.add('hidden');
   }
+}
+
+function showTestConfirmation() {
+  const testSlot = {
+    id_slot: 'SLOT_TEST',
+    struttura: 'Torre',
+    data: '13/06/2026',
+    fascia: 'Pomeriggio',
+    ora_inizio: '14:00',
+    ora_fine: '18:00',
+    capienza_max: 20
+  };
+
+  const testData = {
+    id_slot: 'SLOT_TEST',
+    nome_referente: 'Mario',
+    cognome_referente: 'Rossi',
+    email: 'mario.rossi@example.com',
+    telefono: '3331234567',
+    sezione_gruppo: 'Sezione CAI Test',
+    tipologia_gruppo: 'Scuola CAI',
+    numero_partecipanti: 12,
+    numero_accompagnatori: 2,
+    finalita: 'Test riepilogo richiesta senza invio reale del form.',
+    note_richiedente: 'Nota di test.',
+    consenso_privacy: 'SI'
+  };
+
+  const testResult = {
+    success: true,
+    request: {
+      id_richiesta: 'REQ_TEST_001'
+    },
+    notification: {
+      success: true,
+      sent: 2,
+      message: 'Notifica email di test simulata.'
+    },
+    message: 'Richiesta di test inviata correttamente.'
+  };
+
+  showConfirmation(testSlot, testData, testResult);
 }
 
 function getRequestId(result) {
