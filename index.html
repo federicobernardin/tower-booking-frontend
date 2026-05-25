@@ -6,7 +6,7 @@
 
   <title>Prenotazioni Torre e Laboratorio CAI</title>
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="tower-booking-frontend/style.css">
 </head>
 
 <body>
@@ -20,6 +20,12 @@
           La richiesta sarà valutata dal coordinamento prima della conferma.
         </p>
       </div>
+
+      <nav class="header-actions" aria-label="Accessi rapidi">
+        <button type="button" class="header-button" onclick="goToVolunteerArea()">Area volontari</button>
+        <button type="button" class="header-button secondary-light" onclick="goToCoordinatorArea()">Area coordinatore</button>
+        <button type="button" class="header-button secondary-light" onclick="goToDashboard()">Dashboard</button>
+      </nav>
     </div>
   </header>
 
@@ -173,11 +179,17 @@
   </main>
 
   <footer class="app-footer">
-    <div class="container">
+    <div class="container footer-content">
       <p>Centro Studi Materiali e Tecniche CAI</p>
+
+      <div class="footer-links">
+        <button type="button" class="text-button" onclick="goToVolunteerArea()">Area volontari</button>
+        <button type="button" class="text-button" onclick="goToCoordinatorArea()">Area coordinatore</button>
+        <button type="button" class="text-button" onclick="goToDashboard()">Dashboard</button>
+      </div>
     </div>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="tower-booking-frontend/app.js"></script>
 </body>
 </html>
