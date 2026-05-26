@@ -7,6 +7,8 @@
   <title>Prenotazioni Torre e Laboratorio CAI</title>
 
   <link rel="stylesheet" href="style.css">
+
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 
 <body>
@@ -68,6 +70,7 @@
             <option value="">Tutte</option>
             <option value="Torre">Torre</option>
             <option value="Laboratorio">Laboratorio</option>
+            <option value="Torre + Laboratorio">Torre + Laboratorio</option>
           </select>
         </label>
 
@@ -77,7 +80,6 @@
             <option value="">Tutte</option>
             <option value="Mattina">Mattina</option>
             <option value="Pomeriggio">Pomeriggio</option>
-            <option value="Giornata intera">Giornata intera</option>
           </select>
         </label>
 
@@ -157,6 +159,23 @@
           <textarea name="finalita" required></textarea>
         </label>
 
+        <label class="checkbox certified-checkbox">
+          <input type="checkbox" name="aggiornamento_certificato" value="SI">
+          <span class="checkbox-text">
+            Richiedo che l’aggiornamento in Torre e/o Laboratorio sia certificato.
+            <span class="tooltip-wrapper">
+              <button type="button" class="info-tooltip-button" aria-label="Informazioni sull’aggiornamento certificato">
+                i
+              </button>
+              <span class="tooltip-box" role="tooltip">
+                Seleziona questa opzione se hai bisogno che l’aggiornamento venga certificato.
+                Quando la richiesta sarà confermata verrai richiamato al numero indicato per ricevere
+                il nome del certificatore da inserire nel nulla osta.
+              </span>
+            </span>
+          </span>
+        </label>
+
         <label>
           Note aggiuntive
           <textarea name="note_richiedente"></textarea>
@@ -166,6 +185,18 @@
           <input type="checkbox" name="consenso_privacy" required>
           <span>Dichiaro di autorizzare l'utilizzo dei dati inseriti per la gestione della richiesta.</span>
         </label>
+
+        <input type="text" name="website" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+        <input type="hidden" name="form_started_at" id="form_started_at">
+
+        <div class="turnstile-box">
+          <div
+            class="cf-turnstile"
+            data-sitekey="0x4AAAAAADWjQ2NpVnJ-gyJz"
+            data-theme="light">
+          </div>
+        </div>
 
         <div class="actions">
           <button type="submit">Invia richiesta</button>

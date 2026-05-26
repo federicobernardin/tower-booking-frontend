@@ -250,6 +250,12 @@ button:active {
   transform: translateY(0);
 }
 
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 button.secondary {
   background: #666;
 }
@@ -373,12 +379,115 @@ button.secondary {
   align-items: flex-start;
   font-weight: normal;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  line-height: 1.45;
 }
 
 .checkbox input {
   width: auto;
   margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.checkbox-text {
+  display: inline;
+}
+
+.certified-checkbox {
+  margin-top: 20px;
+  margin-bottom: 24px;
+  padding: 12px 14px;
+  border: 1px solid #d9e5df;
+  border-radius: 10px;
+  background: #fbfdfc;
+}
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.info-tooltip-button {
+  width: 19px;
+  height: 19px;
+  min-height: 19px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--green);
+  background: white;
+  color: var(--green);
+  font-size: 13px;
+  line-height: 1;
+  font-weight: bold;
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: none;
+}
+
+.info-tooltip-button:hover,
+.info-tooltip-button:focus {
+  background: var(--green);
+  color: white;
+  opacity: 1;
+  transform: none;
+}
+
+.tooltip-box {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+  width: min(320px, 80vw);
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: #17392d;
+  color: white;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: normal;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.tooltip-box::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  border-width: 7px;
+  border-style: solid;
+  border-color: #17392d transparent transparent transparent;
+}
+
+.tooltip-wrapper:hover .tooltip-box,
+.tooltip-wrapper:focus-within .tooltip-box {
+  opacity: 1;
+  visibility: visible;
+}
+
+.hp-field {
+  position: absolute !important;
+  left: -99999px !important;
+  top: auto !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.turnstile-box {
+  margin: 18px 0 8px 0;
 }
 
 .app-footer {
@@ -503,6 +612,31 @@ button.secondary {
 
   .checkbox input {
     width: auto;
+  }
+
+  .certified-checkbox {
+    padding: 12px;
+    margin-top: 18px;
+    margin-bottom: 22px;
+  }
+
+  .tooltip-wrapper {
+    position: static;
+  }
+
+  .tooltip-box {
+    left: 12px;
+    right: 12px;
+    bottom: auto;
+    top: auto;
+    transform: none;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin-top: 8px;
+  }
+
+  .tooltip-box::after {
+    display: none;
   }
 
   .footer-content {

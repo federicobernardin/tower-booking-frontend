@@ -1,9 +1,12 @@
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzRm6qkOfhgEO3-HVmnjMzVbTjr05tjuM3NcRZKCI7Ldt2Gn7RAYo3Dz1Y1WjJKmaDh5g/exec';
 
+const CERTIFIED_UPDATE_TEXT = 'Hai richiesto un aggiornamento certificato. Quando la tua richiesta sarà confermata verrai richiamato al numero di telefono che hai indicato per darti il nome del certificatore che dovrà essere usato nel nulla osta.';
+
 let currentSlots = [];
 let selectedSlot = null;
 
 document.addEventListener('DOMContentLoaded', function () {
+  initializeAntispamFields();
   ensureConfirmationSection();
   loadAvailableSlots();
 });
@@ -65,14 +68,24 @@ function loadAvailableSlots() {
   const message = document.getElementById('slotsMessage');
   const list = document.getElementById('slotsList');
 
-  const filters = {
-    struttura: document.getElementById('filterStructure').value,
-    fascia: document.getElementById('filterFascia').value
-  };
+  const structure = document.getElementById('filterStructure').value;
+  const fascia = document.getElementById('filterFascia').value;
 
   message.innerHTML = 'Caricamento disponibilità...';
   message.className = 'message';
   list.innerHTML = '';
+  currentSlots = [];
+  selectedSlot = null;
+
+  if (structure === 'Torre + Laboratorio') {
+    loadAvailableCombinedSlots();
+    return;
+  }
+
+  const filters = {
+    struttura: structure,
+    fascia: fascia
+  };
 
   apiCall('getAvailableSlots', filters)
     .then(function(result) {
@@ -81,6 +94,29 @@ function loadAvailableSlots() {
     })
     .catch(function(error) {
       message.innerHTML = 'Errore nel caricamento degli slot: ' + escapeHtml(error.message);
+      message.className = 'message error';
+    });
+}
+
+function loadAvailableCombinedSlots() {
+  const message = document.getElementById('slotsMessage');
+  const list = document.getElementById('slotsList');
+
+  const fascia = document.getElementById('filterFascia').value;
+
+  if (fascia) {
+    message.innerHTML = 'Per la combinazione Torre + Laboratorio il filtro fascia viene ignorato: vengono cercate combinazioni mattina + pomeriggio.';
+    message.className = 'message';
+  }
+
+  apiCall('getAvailableCombinedSlots', {})
+    .then(function(result) {
+      currentSlots = result.combinations || [];
+      renderCombinedSlots(currentSlots);
+    })
+    .catch(function(error) {
+      list.innerHTML = '';
+      message.innerHTML = 'Errore nel caricamento delle combinazioni: ' + escapeHtml(error.message);
       message.className = 'message error';
     });
 }
@@ -120,6 +156,41 @@ function renderSlots(slots) {
   list.innerHTML = html;
 }
 
+function renderCombinedSlots(combinations) {
+  const message = document.getElementById('slotsMessage');
+  const list = document.getElementById('slotsList');
+
+  if (!combinations || combinations.length === 0) {
+    message.innerHTML = 'Non ci sono combinazioni disponibili Torre + Laboratorio.';
+    message.className = 'message';
+    list.innerHTML = '';
+    return;
+  }
+
+  message.innerHTML = 'Combinazioni disponibili Torre + Laboratorio: ' + combinations.length;
+  message.className = 'message success';
+
+  let html = '';
+
+  combinations.forEach(function(combo) {
+    html += '<article class="slot-card">';
+    html += '<span class="slot-badge">Giornata combinata</span>';
+    html += '<h3>' + escapeHtml(combo.struttura) + '</h3>';
+
+    html += '<div class="slot-meta">';
+    html += '<div><strong>Data</strong><span>' + escapeHtml(combo.data) + '</span></div>';
+    html += '<div><strong>Mattina</strong><span>' + escapeHtml(combo.mattina.struttura + ' ' + combo.mattina.ora_inizio + ' - ' + combo.mattina.ora_fine) + '</span></div>';
+    html += '<div><strong>Pomeriggio</strong><span>' + escapeHtml(combo.pomeriggio.struttura + ' ' + combo.pomeriggio.ora_inizio + ' - ' + combo.pomeriggio.ora_fine) + '</span></div>';
+    html += '<div><strong>Capienza indicativa</strong><span>' + escapeHtml(combo.capienza_max) + '</span></div>';
+    html += '</div>';
+
+    html += '<button type="button" onclick="selectCombinedSlot(\'' + escapeJs(combo.id_combo) + '\')">Richiedi questa combinazione</button>';
+    html += '</article>';
+  });
+
+  list.innerHTML = html;
+}
+
 function selectSlot(slotId) {
   selectedSlot = currentSlots.find(function(slot) {
     return String(slot.id_slot) === String(slotId);
@@ -150,10 +221,43 @@ function selectSlot(slotId) {
   });
 }
 
+function selectCombinedSlot(comboId) {
+  selectedSlot = currentSlots.find(function(combo) {
+    return String(combo.id_combo) === String(comboId);
+  });
+
+  if (!selectedSlot) {
+    alert('Combinazione non trovata.');
+    return;
+  }
+
+  hideConfirmation();
+
+  document.getElementById('id_slot').value = selectedSlot.id_combo;
+
+  document.getElementById('selectedSlotInfo').innerHTML =
+    '<strong>Combinazione selezionata</strong><br>' +
+    'Data: ' + escapeHtml(selectedSlot.data) + '<br>' +
+    'Mattina: ' + escapeHtml(selectedSlot.mattina.struttura + ' ' + selectedSlot.mattina.ora_inizio + ' - ' + selectedSlot.mattina.ora_fine) + '<br>' +
+    'Pomeriggio: ' + escapeHtml(selectedSlot.pomeriggio.struttura + ' ' + selectedSlot.pomeriggio.ora_inizio + ' - ' + selectedSlot.pomeriggio.ora_fine) + '<br><br>' +
+    '<strong>Nota:</strong> la richiesta verrà registrata come due richieste collegate, una per la mattina e una per il pomeriggio.';
+
+  document.getElementById('requestSection').classList.remove('hidden');
+  document.getElementById('requestMessage').innerHTML = '';
+  document.getElementById('requestMessage').className = 'message';
+
+  document.getElementById('requestSection').scrollIntoView({
+    behavior: 'smooth'
+  });
+}
+
 function cancelRequestForm() {
   selectedSlot = null;
 
   document.getElementById('bookingRequestForm').reset();
+  initializeAntispamFields();
+  resetTurnstileWidget();
+
   document.getElementById('id_slot').value = '';
   document.getElementById('selectedSlotInfo').innerHTML = '';
   document.getElementById('requestMessage').innerHTML = '';
@@ -164,14 +268,30 @@ function cancelRequestForm() {
 function submitBookingRequest(event) {
   event.preventDefault();
 
+  if (!selectedSlot) {
+    alert('Seleziona uno slot prima di inviare la richiesta.');
+    return;
+  }
+
   const form = document.getElementById('bookingRequestForm');
   const submitButton = form.querySelector('button[type="submit"]');
   const message = document.getElementById('requestMessage');
   const data = formToObject(form);
 
   data.consenso_privacy = form.querySelector('[name="consenso_privacy"]').checked ? 'SI' : 'NO';
+  data.aggiornamento_certificato = form.querySelector('[name="aggiornamento_certificato"]') && form.querySelector('[name="aggiornamento_certificato"]').checked ? 'SI' : 'NO';
 
-  const submittedSlot = selectedSlot ? Object.assign({}, selectedSlot) : null;
+  data.website = form.querySelector('[name="website"]') ? form.querySelector('[name="website"]').value : '';
+  data.form_started_at = document.getElementById('form_started_at') ? document.getElementById('form_started_at').value : '';
+  data.turnstile_token = getTurnstileToken();
+
+  if (!data.turnstile_token) {
+    message.innerHTML = 'Completa la verifica anti-spam prima di inviare la richiesta.';
+    message.className = 'message error';
+    return;
+  }
+
+  const submittedSlot = selectedSlot ? JSON.parse(JSON.stringify(selectedSlot)) : null;
   const submittedData = Object.assign({}, data);
 
   message.innerHTML = 'Invio richiesta in corso...';
@@ -179,9 +299,22 @@ function submitBookingRequest(event) {
 
   setSubmitState(submitButton, true);
 
-  apiCall('createBookingRequest', data)
+  let action = 'createBookingRequest';
+  let payload = data;
+
+  if (selectedSlot.tipo_slot === 'combinato') {
+    action = 'createCombinedBookingRequest';
+    payload = Object.assign({}, data, {
+      id_slot_mattina: selectedSlot.mattina.id_slot,
+      id_slot_pomeriggio: selectedSlot.pomeriggio.id_slot
+    });
+  }
+
+  apiCall(action, payload)
     .then(function(result) {
       form.reset();
+      initializeAntispamFields();
+      resetTurnstileWidget();
 
       document.getElementById('requestSection').classList.add('hidden');
       document.getElementById('requestMessage').innerHTML = '';
@@ -195,6 +328,7 @@ function submitBookingRequest(event) {
     .catch(function(error) {
       message.innerHTML = 'Errore durante l’invio della richiesta: ' + escapeHtml(error.message);
       message.className = 'message error';
+      resetTurnstileWidget();
     })
     .finally(function() {
       setSubmitState(submitButton, false);
@@ -252,16 +386,27 @@ function showConfirmation(slot, data, result) {
   const section = document.getElementById('confirmationSection');
   const content = document.getElementById('confirmationContent');
 
-  const requestId = getRequestId(result);
+  const isCombined = result && result.combined === true;
 
   let html = '';
 
   html += '<div class="message success">';
   html += '<strong>Richiesta ricevuta correttamente.</strong><br>';
+
+  if (isCombined) {
+    html += 'La richiesta combinata è stata registrata come due richieste collegate. ';
+  }
+
   html += 'La prenotazione non è ancora confermata. ';
   html += 'Il coordinamento verificherà la disponibilità della struttura e dei volontari ';
   html += 'e ti invierà una comunicazione all’indirizzo email indicato.';
   html += '</div>';
+
+  if (data && data.aggiornamento_certificato === 'SI') {
+    html += '<div class="message">';
+    html += escapeHtml(CERTIFIED_UPDATE_TEXT);
+    html += '</div>';
+  }
 
   if (result && result.requesterNotification) {
     if (result.requesterNotification.success === true) {
@@ -276,32 +421,11 @@ function showConfirmation(slot, data, result) {
   }
 
   html += '<div class="selected-slot">';
-  html += '<strong>Riepilogo richiesta</strong><br>';
 
-  if (requestId) {
-    html += 'ID richiesta: ' + escapeHtml(requestId) + '<br>';
-  }
-
-  if (slot) {
-    html += 'Struttura: ' + escapeHtml(slot.struttura) + '<br>';
-    html += 'Data: ' + escapeHtml(slot.data) + '<br>';
-    html += 'Fascia: ' + escapeHtml(slot.fascia) + '<br>';
-    html += 'Orario: ' + escapeHtml(slot.ora_inizio + ' - ' + slot.ora_fine) + '<br>';
-  }
-
-  html += '<br>';
-  html += 'Referente: ' + escapeHtml((data.nome_referente || '') + ' ' + (data.cognome_referente || '')) + '<br>';
-  html += 'Email: ' + escapeHtml(data.email || '') + '<br>';
-  html += 'Telefono: ' + escapeHtml(data.telefono || '') + '<br>';
-  html += 'Gruppo: ' + escapeHtml(data.sezione_gruppo || '') + '<br>';
-  html += 'Tipologia gruppo: ' + escapeHtml(data.tipologia_gruppo || '') + '<br>';
-  html += 'Partecipanti: ' + escapeHtml(data.numero_partecipanti || '') + '<br>';
-  html += 'Accompagnatori: ' + escapeHtml(data.numero_accompagnatori || 0) + '<br>';
-
-  if (data.finalita) {
-    html += '<br>';
-    html += '<strong>Finalità</strong><br>';
-    html += escapeHtml(data.finalita);
+  if (isCombined) {
+    html += buildCombinedConfirmationHtml(slot, data, result);
+  } else {
+    html += buildSingleConfirmationHtml(slot, data, result);
   }
 
   html += '</div>';
@@ -325,6 +449,88 @@ function showConfirmation(slot, data, result) {
   section.scrollIntoView({
     behavior: 'smooth'
   });
+}
+
+function buildSingleConfirmationHtml(slot, data, result) {
+  const requestId = getRequestId(result);
+
+  let html = '';
+
+  html += '<strong>Riepilogo richiesta</strong><br>';
+
+  if (requestId) {
+    html += 'ID richiesta: ' + escapeHtml(requestId) + '<br>';
+  }
+
+  if (slot) {
+    html += 'Struttura: ' + escapeHtml(slot.struttura) + '<br>';
+    html += 'Data: ' + escapeHtml(slot.data) + '<br>';
+    html += 'Fascia: ' + escapeHtml(slot.fascia) + '<br>';
+    html += 'Orario: ' + escapeHtml(slot.ora_inizio + ' - ' + slot.ora_fine) + '<br>';
+  }
+
+  html += buildRequesterSummaryHtml(data);
+
+  return html;
+}
+
+function buildCombinedConfirmationHtml(slot, data, result) {
+  let html = '';
+
+  html += '<strong>Riepilogo richiesta combinata</strong><br>';
+
+  if (result.id_gruppo_richiesta) {
+    html += 'ID gruppo richiesta: ' + escapeHtml(result.id_gruppo_richiesta) + '<br>';
+  }
+
+  if (result.requests && result.requests.mattina) {
+    const morningRequestId = getRequestId({ request: result.requests.mattina });
+
+    if (morningRequestId) {
+      html += 'ID richiesta mattina: ' + escapeHtml(morningRequestId) + '<br>';
+    }
+  }
+
+  if (result.requests && result.requests.pomeriggio) {
+    const afternoonRequestId = getRequestId({ request: result.requests.pomeriggio });
+
+    if (afternoonRequestId) {
+      html += 'ID richiesta pomeriggio: ' + escapeHtml(afternoonRequestId) + '<br>';
+    }
+  }
+
+  if (slot) {
+    html += '<br>';
+    html += 'Data: ' + escapeHtml(slot.data) + '<br>';
+    html += 'Mattina: ' + escapeHtml(slot.mattina.struttura + ' ' + slot.mattina.ora_inizio + ' - ' + slot.mattina.ora_fine) + '<br>';
+    html += 'Pomeriggio: ' + escapeHtml(slot.pomeriggio.struttura + ' ' + slot.pomeriggio.ora_inizio + ' - ' + slot.pomeriggio.ora_fine) + '<br>';
+  }
+
+  html += buildRequesterSummaryHtml(data);
+
+  return html;
+}
+
+function buildRequesterSummaryHtml(data) {
+  let html = '';
+
+  html += '<br>';
+  html += 'Referente: ' + escapeHtml((data.nome_referente || '') + ' ' + (data.cognome_referente || '')) + '<br>';
+  html += 'Email: ' + escapeHtml(data.email || '') + '<br>';
+  html += 'Telefono: ' + escapeHtml(data.telefono || '') + '<br>';
+  html += 'Gruppo: ' + escapeHtml(data.sezione_gruppo || '') + '<br>';
+  html += 'Tipologia gruppo: ' + escapeHtml(data.tipologia_gruppo || '') + '<br>';
+  html += 'Partecipanti: ' + escapeHtml(data.numero_partecipanti || '') + '<br>';
+  html += 'Accompagnatori: ' + escapeHtml(data.numero_accompagnatori || 0) + '<br>';
+  html += 'Aggiornamento certificato: ' + escapeHtml(data.aggiornamento_certificato === 'SI' ? 'SI' : 'NO') + '<br>';
+
+  if (data.finalita) {
+    html += '<br>';
+    html += '<strong>Finalità</strong><br>';
+    html += escapeHtml(data.finalita);
+  }
+
+  return html;
 }
 
 function hideConfirmation() {
@@ -358,7 +564,8 @@ function showTestConfirmation() {
     numero_accompagnatori: 2,
     finalita: 'Test riepilogo richiesta senza invio reale del form.',
     note_richiedente: 'Nota di test.',
-    consenso_privacy: 'SI'
+    consenso_privacy: 'SI',
+    aggiornamento_certificato: 'SI'
   };
 
   const testResult = {
@@ -380,6 +587,103 @@ function showTestConfirmation() {
   };
 
   showConfirmation(testSlot, testData, testResult);
+}
+
+function showTestCombinedConfirmation() {
+  const testSlot = {
+    tipo_slot: 'combinato',
+    id_combo: 'COMBO_TEST',
+    struttura: 'Torre + Laboratorio',
+    data: '13/06/2026',
+    fascia: 'Giornata combinata',
+    mattina: {
+      id_slot: 'SLOT_M_TEST',
+      struttura: 'Torre',
+      data: '13/06/2026',
+      fascia: 'Mattina',
+      ora_inizio: '08:30',
+      ora_fine: '12:30'
+    },
+    pomeriggio: {
+      id_slot: 'SLOT_P_TEST',
+      struttura: 'Laboratorio',
+      data: '13/06/2026',
+      fascia: 'Pomeriggio',
+      ora_inizio: '14:00',
+      ora_fine: '18:00'
+    }
+  };
+
+  const testData = {
+    nome_referente: 'Mario',
+    cognome_referente: 'Rossi',
+    email: 'mario.rossi@example.com',
+    telefono: '3331234567',
+    sezione_gruppo: 'Sezione CAI Test',
+    tipologia_gruppo: 'Scuola CAI',
+    numero_partecipanti: 12,
+    numero_accompagnatori: 2,
+    finalita: 'Test riepilogo richiesta combinata senza invio reale del form.',
+    note_richiedente: 'Nota di test.',
+    consenso_privacy: 'SI',
+    aggiornamento_certificato: 'SI'
+  };
+
+  const testResult = {
+    success: true,
+    combined: true,
+    id_gruppo_richiesta: 'GRP_TEST_001',
+    requests: {
+      mattina: {
+        id_richiesta: 'REQ_TEST_MATTINA'
+      },
+      pomeriggio: {
+        id_richiesta: 'REQ_TEST_POMERIGGIO'
+      }
+    },
+    notification: {
+      success: true,
+      sent: 0,
+      message: 'Notifiche al coordinamento gestite dalle due chiamate createBookingRequest.'
+    },
+    requesterNotification: {
+      success: true,
+      sent: 1,
+      message: 'Email di presa in carico combinata inviata al richiedente.'
+    }
+  };
+
+  showConfirmation(testSlot, testData, testResult);
+}
+
+function initializeAntispamFields() {
+  window.formStartedAt = new Date().getTime();
+
+  const field = document.getElementById('form_started_at');
+
+  if (field) {
+    field.value = String(window.formStartedAt);
+  }
+}
+
+function getTurnstileToken() {
+  const tokenInput = document.querySelector('[name="cf-turnstile-response"]');
+
+  if (!tokenInput) {
+    return '';
+  }
+
+  return String(tokenInput.value || '').trim();
+}
+
+function resetTurnstileWidget() {
+  if (window.turnstile && typeof window.turnstile.reset === 'function') {
+    try {
+      window.turnstile.reset();
+    } catch (error) {
+      console.warn('Impossibile resettare Turnstile:', error);
+    }
+  }
 }
 
 function goToVolunteerArea() {
